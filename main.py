@@ -18,7 +18,6 @@ from tts import TTS
 OPEN_AI_KEY = os.getenv("OPEN_AI_KEY")
 SECRETARY_NAMES = os.getenv("SECRETARY_NAMES", "비서").split(",")
 openai.api_key = OPEN_AI_KEY
-print(OPEN_AI_KEY)
 # TODO:
 # WHISPER 서버를 이용한 음성 인식 기능 추가
 # 컨텍스트 기억 기능 추가
@@ -75,13 +74,14 @@ def text_to_speach(tts: TTS):
 @safe(exceptions=(KeyboardInterrupt, Exception))  # type:ignore
 def loop(p: pyaudio.PyAudio, device_index: int):
     tts = TTS.XTTS(p)
-    stt = STT.LocalSTT()
+    stt = STT.RemoteSTT()
     with AudioStream(p, device_index) as stream:
         print("\n실시간 음성 입력을 녹음하고 변환합니다.\n")
         while True:
-            audio_data = stream.detect_audio().map(stream.translate_16_to_32)
+            audio_data = stream.detect_audio()
             # 오디오 데이터를 텍스트로 변환
-            text = audio_data.map(stt.run).map(get_text).value_or("")
+            text = audio_data.map(stt.run).value_or("").strip()
+            print(f"{text=}")
             if not text:
                 continue
             response = is_ai_call(text).map(send_prompt_to_ai)
