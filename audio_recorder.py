@@ -4,6 +4,8 @@ import numpy as np
 from returns.maybe import maybe, Maybe
 from returns.result import safe
 
+from recorded_file import RecordedFile
+
 
 def get_volume(audio_chunk: np.ndarray):
     return np.max(np.abs(audio_chunk))
@@ -18,6 +20,7 @@ class AudioStream:
     SILENCE_DURATION = 2  # 소리가 없어진 후 종료까지의 시간 (초)
 
     def __init__(self, p: pyaudio.PyAudio, device_index: int):
+        self.p = p
         self.stream = p.open(
             format=self.FORMAT,
             channels=self.CHANNELS,
@@ -47,11 +50,6 @@ class AudioStream:
     def detect_audio(self):
         return RecordingSession(self).record()
 
-    @staticmethod
-    def translate_16_to_32(audio_data: np.ndarray):
-        # 오디오 데이터를 부동소수점으로 변환 및 정규화
-        return audio_data.astype(np.float32) / 32768.0
-
 
 class ThresholdNotExceeded(Exception):
     pass
@@ -69,9 +67,16 @@ class RecordingSession:
         self.frames = []
         self.pre_frames = deque([], maxlen=int(self.STAND_BY_TIME / 2))
 
-    def get_audio_frames(self):
+    def to_recorded_file(self) -> RecordedFile:
         frames = list(self.pre_frames) + self.frames
-        return np.hstack(frames)
+        frames = np.hstack(frames)
+        return RecordedFile(
+            self.stream.p,
+            ndarray=frames,
+            file_name="recorded.wav",
+            rate=self.stream.RATE,
+            channels=self.stream.CHANNELS,
+        )
 
     def start_record(self, dummy: None):
         if not self.is_record_started:
@@ -102,4 +107,4 @@ class RecordingSession:
             # 소리가 없어진 후 지정된 시간만큼 대기
             if self.silent_frames > self.STAND_BY_TIME:
                 break
-        return self.get_audio_frames()
+        return self.to_recorded_file()
