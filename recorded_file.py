@@ -32,7 +32,4 @@ class RecordedFile:
             wav_file.setframerate(self.rate)
             wav_file.writeframes(self.ndarray.tobytes())
         io.seek(0)
-        with open(self.file_name, "wb") as f:
-            f.write(io.read())
-        io.seek(0)
         return io
