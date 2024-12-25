@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from io import BytesIO
 import uuid
 from gtts import gTTS
 import pyaudio
@@ -13,14 +14,40 @@ class TTS:
     def run(self, text: str): ...
     @staticmethod
     def XTTS(p: pyaudio.PyAudio) -> "TTS":
-        return XTTS(p=p)
+        return XTTSStream(p=p)
 
     @staticmethod
     def GTTS(p: pyaudio.PyAudio) -> "TTS":
         return GTTS(p=p)
 
 
-class XTTS(TTS):
+class XTTSFile(TTS):
+    def run(self, text: str):
+        r = requests.post(
+            "http://localhost:8020/tts_to_audio",
+            headers={"Content-Type": "application/json"},
+            json={
+                "text": text,
+                "speaker_wav": "calm_female",
+                "language": "ko",
+            },
+        )
+        with self.player() as stream:
+            stream.write(r.content)
+
+    @contextmanager
+    def player(self):
+        try:
+            stream = self.p.open(
+                format=pyaudio.paInt16, channels=1, rate=int(24000), output=True
+            )
+            yield stream
+        finally:
+            stream.start_stream()
+            stream.close()
+
+
+class XTTSStream(TTS):
     def run(self, text: str):
         with self.player() as stream:
             r = requests.get(
@@ -28,14 +55,15 @@ class XTTS(TTS):
                 headers={"Content-Type": "application/json"},
                 params={
                     "text": text,
-                    "speaker_wav": "calm_female.wav",
+                    "speaker_wav": "calm_female",
                     "language": "ko",
                 },
                 stream=True,
             )
-            with r:
-                for chunk in r.iter_content(chunk_size=1024):
-                    stream.write(chunk)
+            with BytesIO() as io:
+                with r:
+                    for chunk in r.iter_content(chunk_size=1024):
+                        stream.write(chunk)
 
     @contextmanager
     def player(self):

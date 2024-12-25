@@ -30,7 +30,7 @@ class LocalWhisper(STT):
         self.model = self.load_whisper()
 
     def load_whisper(self):
-        return whisper.load_model("medium", device="cuda")
+        return whisper.load_model("medium", device="cuda:1")
 
     def run(self, data: RecordedFile) -> str:
         return self.model.transcribe(

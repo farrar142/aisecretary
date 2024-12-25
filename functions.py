@@ -1,23 +1,22 @@
+from collections import deque
 import os
-from typing import Any
+from typing import Callable, Iterable, Union
 import openai
 import pyaudio
-import numpy as np
 import requests
-import whisper
-from returns.maybe import Maybe, maybe
-from returns.result import Result, safe, attempt
+from returns.result import safe
 from dotenv import load_dotenv
+from g2pk import G2p
 
 from audio_recorder import AudioStream
 from stt import STT, STTResult
 from tts import TTS
+from context_memorizer import System, Message, memorize_context, memorize_context_json
 
+load_dotenv()
 OPEN_AI_KEY = os.getenv("OPEN_AI_KEY")
 SECRETARY_NAMES = os.getenv("SECRETARY_NAMES", "비서").split(",")
 DISCORD_WEB_HOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
-
-load_dotenv()
 
 
 def list_audio_devices(p: pyaudio.PyAudio):
@@ -40,25 +39,33 @@ def is_ai_call(prompt: str):
     raise Exception
 
 
-def send_prompt_to_ai(text: str, model_name: str = "gpt-3.5-turbo") -> str:
+@memorize_context_json
+# @memorize_context
+def send_prompt_to_ai(
+    context: Iterable[Message], model_name: str = "gpt-3.5-turbo"
+) -> str:
+    total_context: list[Message] = [
+        System(content="You are a helpful assistant"),
+    ]
+    total_context.extend(context)
     response = openai.chat.completions.create(
         model=model_name,
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": text},
-        ],
+        messages=total_context,
     )
     return (response.choices[0].message.content or "").strip()
 
 
 def text_to_speach(tts: TTS):
+    @safe
     def inner(text: str):
-        tts.run(text)
+        tts.run(G2p()(text))
+        return text
 
     return inner
 
 
 def discord_webhook(text: str):
+    @safe
     def inner(content: str):
         if not DISCORD_WEB_HOOK_URL:
             return content
@@ -83,7 +90,7 @@ def loop(p: pyaudio.PyAudio, device_index: int, stt: STT, tts: TTS):
             print(f"{text=}")
             if not text:
                 continue
-            response = is_ai_call(text).map(send_prompt_to_ai)
+            response = is_ai_call(text).bind(send_prompt_to_ai)
             # 응답을 tts로 출력해야됨
             response.map(print)
-            response.map(discord_webhook(text)).map(text_to_speach(tts))
+            response.bind(discord_webhook(text)).bind(text_to_speach(tts))
