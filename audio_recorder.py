@@ -137,6 +137,7 @@ class RecordingSession:
             if not self.is_record_started:
                 continue
             if self.handle_pop_noise():
+                self.clear()
                 continue
             # 소리가 없어진 후 지정된 시간만큼 대기
             if self.silent_frames > self.STAND_BY_TIME:

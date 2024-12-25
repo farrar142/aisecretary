@@ -1,0 +1,11 @@
+openai
+pytorch
+numpy
+pyaudio
+requests
+whisper
+returns
+python-dotenv
+wave
+gtts
+playsound
