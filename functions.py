@@ -27,14 +27,6 @@ def list_audio_devices(p: pyaudio.PyAudio):
         print(f"{i}: {info['name']}")
 
 
-# 오디오 -> 텍스트
-def audio_to_text(model: whisper.Whisper):
-    def inner(d: np.ndarray) -> dict[str, Any]:
-        return model.transcribe(d, fp16=False, language="ko")
-
-    return inner
-
-
 def get_text(data: STTResult):
     return str(data["text"]).strip()
 
@@ -56,8 +48,7 @@ def send_prompt_to_ai(text: str, model_name: str = "gpt-3.5-turbo") -> str:
             {"role": "user", "content": text},
         ],
     )
-    translated_text = (response.choices[0].message.content or "").strip()
-    return translated_text
+    return (response.choices[0].message.content or "").strip()
 
 
 def text_to_speach(tts: TTS):
@@ -67,15 +58,18 @@ def text_to_speach(tts: TTS):
     return inner
 
 
-def discord_webhook(content: str):
-    if not DISCORD_WEB_HOOK_URL:
+def discord_webhook(text: str):
+    def inner(content: str):
+        if not DISCORD_WEB_HOOK_URL:
+            return content
+        requests.post(
+            DISCORD_WEB_HOOK_URL,
+            json=dict(content=text + "\n" + content),
+            headers={"Content-Type": "application/json"},
+        )
         return content
-    requests.post(
-        DISCORD_WEB_HOOK_URL,
-        json=dict(content=content),
-        headers={"Content-Type": "application/json"},
-    )
-    return content
+
+    return inner
 
 
 @safe(exceptions=(KeyboardInterrupt, Exception))  # type:ignore
@@ -92,4 +86,4 @@ def loop(p: pyaudio.PyAudio, device_index: int, stt: STT, tts: TTS):
             response = is_ai_call(text).map(send_prompt_to_ai)
             # 응답을 tts로 출력해야됨
             response.map(print)
-            response.map(discord_webhook).map(text_to_speach(tts))
+            response.map(discord_webhook(text)).map(text_to_speach(tts))
