@@ -3,6 +3,7 @@ from typing import Any
 import openai
 import pyaudio
 import numpy as np
+import requests
 import whisper
 from returns.maybe import Maybe, maybe
 from returns.result import Result, safe, attempt
@@ -17,11 +18,12 @@ from tts import TTS
 
 OPEN_AI_KEY = os.getenv("OPEN_AI_KEY")
 SECRETARY_NAMES = os.getenv("SECRETARY_NAMES", "비서").split(",")
+DISCORD_WEB_HOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 openai.api_key = OPEN_AI_KEY
 # TODO:
-# WHISPER 서버를 이용한 음성 인식 기능 추가
-# 컨텍스트 기억 기능 추가
+# [O] WHISPER 서버를 이용한 음성 인식 기능 추가
 # 디스코드 웹훅 기능 추가
+# 컨텍스트 기억 기능 추가
 
 
 def list_audio_devices(p: pyaudio.PyAudio):
@@ -71,10 +73,21 @@ def text_to_speach(tts: TTS):
     return inner
 
 
+def discord_webhook(content: str):
+    if not DISCORD_WEB_HOOK_URL:
+        return content
+    requests.post(
+        DISCORD_WEB_HOOK_URL,
+        json=dict(content=content),
+        headers={"Content-Type": "application/json"},
+    )
+    return content
+
+
 @safe(exceptions=(KeyboardInterrupt, Exception))  # type:ignore
 def loop(p: pyaudio.PyAudio, device_index: int):
+    stt = STT.LocalSTT()
     tts = TTS.XTTS(p)
-    stt = STT.RemoteSTT()
     with AudioStream(p, device_index) as stream:
         print("\n실시간 음성 입력을 녹음하고 변환합니다.\n")
         while True:
@@ -87,7 +100,7 @@ def loop(p: pyaudio.PyAudio, device_index: int):
             response = is_ai_call(text).map(send_prompt_to_ai)
             # 응답을 tts로 출력해야됨
             response.map(print)
-            response.map(text_to_speach(tts))
+            response.map(discord_webhook).map(text_to_speach(tts))
 
 
 def main():

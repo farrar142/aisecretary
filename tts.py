@@ -41,7 +41,7 @@ class XTTS(TTS):
     def player(self):
         try:
             stream = self.p.open(
-                format=pyaudio.paInt16, channels=1, rate=24000, output=True
+                format=pyaudio.paInt16, channels=1, rate=int(24000), output=True
             )
             yield stream
         finally:
