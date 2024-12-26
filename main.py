@@ -1,9 +1,6 @@
 import argparse
-import json
-from time import sleep
 import openai
 import pyaudio
-from returns.maybe import Maybe
 
 from ai.ai import AI
 from programs import (
@@ -55,5 +52,4 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--tts", default="xtts")
     parser.add_argument("--stt", default="local")
-
     main(parser)

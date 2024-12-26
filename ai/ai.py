@@ -1,12 +1,11 @@
-from datetime import datetime
 from typing import Iterable
 import openai
-from returns.result import attempt, safe, Result
-from returns.maybe import Maybe
+from returns.result import safe
 
-from ai.functions import Function, FunctionResult, get_weather
+from ai.functions import Function, FunctionResult
 from decorators.throttles import execution_limit
 from .context import Message, System, Assistant, ContextLoader
+from ai.tasks import *
 
 
 class AI:
@@ -24,21 +23,6 @@ class AI:
         return ChatGPT(ContextLoader.JsonLoader())
 
 
-@Function.register(
-    location="불을 키고 끌 장소 (주방, 거실 등등)",
-    state="목표로 하는 상태, (True=on, False=off)",
-)
-def turn_light(location: str, state: bool):
-    "location위치의 불을 키고 끕니다"
-    return True
-
-
-@Function.register()
-def now():
-    "현재 시각을 알려줍니다"
-    return str(datetime.now())
-
-
 class ChatGPT(AI):
     model_name = "gpt-3.5-turbo"
 
@@ -54,7 +38,7 @@ class ChatGPT(AI):
                 model=self.model_name,
                 messages=messages,
                 function_call="auto",
-                functions=[get_weather.dict(), turn_light.dict(), now.dict()],
+                functions=list(map(lambda x: x.dict(), Function.get_functions())),
             )
             choice = response.choices[0]
             if choice.finish_reason == "function_call":

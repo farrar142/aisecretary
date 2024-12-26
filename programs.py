@@ -67,6 +67,7 @@ def loop(p: pyaudio.PyAudio, device_index: int, stt: STT, tts: TTS, ai: AI):
             audio_data = stream.detect_audio()
             # 오디오 데이터를 텍스트로 변환
             prompt = audio_data.map(stt.run).value_or("").strip()
+            print(f"{prompt=}")
             if not prompt:
                 continue
             # 텍스트로 ai 응답 생성

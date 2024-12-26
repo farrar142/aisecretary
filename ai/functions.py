@@ -75,10 +75,14 @@ class Function(Generic[P, T]):
     def function_call(cls, call: FunctionCall):
         name = call.name
 
-        print(f"function {name} called")
         args: dict = json.loads(call.arguments)
+        print(f"function {name} called with {args}")
         function = Maybe.from_optional(cls.functions.get(name, None))
         return function.map(lambda x: FunctionResult(x, x(**args)))
+
+    @classmethod
+    def get_functions(cls):
+        return list(cls.functions.values())
 
     def dict(self):
         return FunctionDict(
@@ -97,11 +101,3 @@ class FunctionResult(Generic[P, T]):
         return FunctionM(
             role="function", name=self.function.name, content=str(self.result)
         )
-
-
-# 테스트용 함수
-@Function.register(location="위치 이름", unit="단위 (metric 또는 imperial)")
-def get_weather(location: str, unit: str = "metric"):
-    "특정 위치의 날씨를 가져옵니다."
-    print("날씨찾기!!!")
-    return "맑거나 흐림"
