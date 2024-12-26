@@ -8,6 +8,7 @@ from ai.ai import AI
 from recorder.audio_recorder import AudioStream
 from converters.stt import STT, STTResult
 from converters.tts import TTS
+from utils.threaded import threaded
 
 
 def list_audio_devices(p: pyaudio.PyAudio):
@@ -41,7 +42,7 @@ def is_ai_call(prompt: str):
 
 
 def discord_webhook(text: str):
-    @safe
+    @threaded
     def inner(content: str):
         if not DISCORD_WEB_HOOK_URL:
             return content
@@ -66,12 +67,11 @@ def loop(p: pyaudio.PyAudio, device_index: int, stt: STT, tts: TTS, ai: AI):
             audio_data = stream.detect_audio()
             # 오디오 데이터를 텍스트로 변환
             prompt = audio_data.map(stt.run).value_or("").strip()
-            print(f"{prompt=}")
             if not prompt:
                 continue
             # 텍스트로 ai 응답 생성
             response = is_ai_call(prompt).bind(ai.run)
             # 응답을 tts로 출력해야됨
             response.map(print)
-            response.bind(discord_webhook(prompt))
-            response.bind(safe(G2p())).bind(tts.run)
+            response.map(discord_webhook(prompt))
+            response.bind(safe(G2p())).map(tts.run)

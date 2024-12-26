@@ -7,6 +7,8 @@ from playsound import playsound
 import requests
 from returns.result import safe
 
+from utils.threaded import threaded
+
 
 class TTS:
     def __init__(self, p: pyaudio.PyAudio, *args, **kwargs):
@@ -14,6 +16,7 @@ class TTS:
 
     def get_response(self, text: str): ...
 
+    @threaded
     def run(self, text: str):
         return safe(self.get_response)(text)
 

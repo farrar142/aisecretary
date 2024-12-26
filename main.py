@@ -6,11 +6,9 @@ import pyaudio
 from returns.maybe import Maybe
 
 from ai.ai import AI
-from throttles import rate_limit
-from utils import (
+from programs import (
     OPEN_AI_KEY,
     get_record_device,
-    list_audio_devices,
     loop,
 )
 from converters.stt import STT
