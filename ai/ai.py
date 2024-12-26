@@ -5,6 +5,7 @@ from returns.result import attempt, safe, Result
 from returns.maybe import Maybe
 
 from ai.functions import Function, FunctionResult, get_weather
+from throttles import execution_limit
 from .context import Message, System, Assistant, ContextLoader
 
 
@@ -67,4 +68,4 @@ class ChatGPT(AI):
             System(content="You are a helpful assistant"),
         ]
         total_context.extend(messages)
-        return self.recursive_response(total_context)
+        return execution_limit(3)(self.recursive_response)(total_context)

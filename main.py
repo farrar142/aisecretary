@@ -1,10 +1,12 @@
 import argparse
 import json
+from time import sleep
 import openai
 import pyaudio
 from returns.maybe import Maybe
 
 from ai.ai import AI
+from throttles import rate_limit
 from utils import (
     OPEN_AI_KEY,
     get_record_device,
