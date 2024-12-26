@@ -5,6 +5,7 @@ from typing import Any
 import openai
 import pyaudio
 
+from ai.ai import AI
 from functions import (
     OPEN_AI_KEY,
     get_record_device,
@@ -34,6 +35,10 @@ def stt_loader(stt: str):
     return STT.LocalSTT()
 
 
+def ai_loader():
+    return AI.ChatGPT()
+
+
 def a(s: str):
     return s
 
@@ -43,8 +48,9 @@ def main(parser: argparse.ArgumentParser):
     args = parser.parse_args()
     tts = tts_loader(p, args.tts)
     stt = stt_loader(args.stt)
+    ai = ai_loader()
     device = get_record_device(p)
-    result = device.bind(lambda x: loop(p, x, tts=tts, stt=stt))
+    result = device.bind(lambda x: loop(p, x, tts=tts, stt=stt, ai=ai))
     print(result.failure())
     print("프로그램 종료.")
     p.terminate()

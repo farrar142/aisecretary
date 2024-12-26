@@ -12,10 +12,10 @@ class TTS:
     def __init__(self, p: pyaudio.PyAudio, *args, **kwargs):
         self.p = p
 
-    def run(self, text: str): ...
+    def get_response(self, text: str): ...
 
-    def text_to_speech(self, text: str):
-        return safe(self.run)(text)
+    def run(self, text: str):
+        return safe(self.get_response)(text)
 
     @staticmethod
     def XTTS(p: pyaudio.PyAudio) -> "TTS":
@@ -27,7 +27,7 @@ class TTS:
 
 
 class XTTSFile(TTS):
-    def run(self, text: str):
+    def get_response(self, text: str):
         r = requests.post(
             "http://localhost:8020/tts_to_audio",
             headers={"Content-Type": "application/json"},
@@ -53,7 +53,7 @@ class XTTSFile(TTS):
 
 
 class XTTSStream(TTS):
-    def run(self, text: str):
+    def get_response(self, text: str):
         with self.player() as stream:
             r = requests.get(
                 "http://localhost:8020/tts_stream",
@@ -87,7 +87,7 @@ class GTTS(TTS):
         self.file_name = uuid.uuid4().hex + ".mp3"
         super().__init__(*args, **kwargs)
 
-    def run(self, text: str):
+    def get_response(self, text: str):
         tts = gTTS(text, lang="ko", slow=False)
         tts.save(self.file_name)
         self.player()

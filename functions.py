@@ -9,10 +9,11 @@ from returns.maybe import Maybe
 from dotenv import load_dotenv
 from g2pk import G2p
 
+from ai.ai import AI
 from audio_recorder import AudioStream
 from stt import STT, STTResult
 from tts import TTS
-from context_memorizer import System, Message, memorize_context, memorize_context_json
+from ai.context import System, Message
 
 load_dotenv()
 OPEN_AI_KEY = os.getenv("OPEN_AI_KEY")
@@ -51,7 +52,7 @@ def is_ai_call(prompt: str):
     raise Exception
 
 
-@memorize_context_json
+# @memorize_context_json
 # @memorize_context
 def send_prompt_to_ai(
     context: Iterable[Message], model_name: str = "gpt-3.5-turbo"
@@ -83,7 +84,7 @@ def discord_webhook(text: str):
 
 
 @safe(exceptions=(KeyboardInterrupt, Exception))  # type:ignore
-def loop(p: pyaudio.PyAudio, device_index: int, stt: STT, tts: TTS):
+def loop(p: pyaudio.PyAudio, device_index: int, stt: STT, tts: TTS, ai: AI):
     with AudioStream(p, device_index) as stream:
         print("\n실시간 음성 입력을 녹음하고 변환합니다.\n")
         while True:
@@ -95,8 +96,8 @@ def loop(p: pyaudio.PyAudio, device_index: int, stt: STT, tts: TTS):
             if not prompt:
                 continue
             # 텍스트로 ai 응답 생성
-            response = is_ai_call(prompt).bind(send_prompt_to_ai)
+            response = is_ai_call(prompt).bind(ai.run)
             # 응답을 tts로 출력해야됨
             response.map(print)
             response.bind(discord_webhook(prompt))
-            response.bind(safe(G2p())).bind(tts.text_to_speech)
+            response.bind(safe(G2p())).bind(tts.run)
