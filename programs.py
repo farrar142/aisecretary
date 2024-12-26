@@ -60,6 +60,8 @@ def discord_webhook(text: str):
 def loop(p: pyaudio.PyAudio, device_index: int, stt: STT, tts: TTS, ai: AI):
     from g2pk import G2p
 
+    g2p = G2p()
+
     with AudioStream(p, device_index) as stream:
         print("\n실시간 음성 입력을 녹음하고 변환합니다.\n")
         while True:
@@ -73,6 +75,6 @@ def loop(p: pyaudio.PyAudio, device_index: int, stt: STT, tts: TTS, ai: AI):
             # 텍스트로 ai 응답 생성
             response = is_ai_call(prompt).bind(ai.run)
             # 응답을 tts로 출력해야됨
-            response.map(print)
+            response.map(lambda response: print(f"{response=}"))
             response.map(discord_webhook(prompt))
-            response.bind(safe(G2p())).map(tts.run)
+            response.bind(safe(g2p)).map(tts.run)

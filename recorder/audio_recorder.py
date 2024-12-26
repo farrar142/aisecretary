@@ -106,7 +106,6 @@ class RecordingSession:
         if self.is_record_started:
             return self
         self.is_record_started = True
-        print("레코딩 시작")
         return self
 
     def handle_frames(self, audio_chunk: AudioChunk):
@@ -122,7 +121,6 @@ class RecordingSession:
         if self.pop_noise_check_queue.is_full:
             if np.mean(self.pop_noise_check_queue) <= self.THRESHOLD:
                 self.clear()
-                print("low volume")
                 return True
         return False
 

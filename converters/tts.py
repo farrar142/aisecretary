@@ -14,11 +14,11 @@ class TTS:
     def __init__(self, p: pyaudio.PyAudio, *args, **kwargs):
         self.p = p
 
-    def get_response(self, text: str): ...
+    def runner(self, text: str): ...
 
     @threaded
     def run(self, text: str):
-        return safe(self.get_response)(text)
+        return safe(self.runner)(text)
 
     @staticmethod
     def XTTS(p: pyaudio.PyAudio) -> "TTS":
@@ -30,8 +30,8 @@ class TTS:
 
 
 class XTTSFile(TTS):
-    def get_response(self, text: str):
-        r = requests.post(
+    def runner(self, text: str):
+        with requests.post(
             "http://localhost:8020/tts_to_audio",
             headers={"Content-Type": "application/json"},
             json={
@@ -39,9 +39,10 @@ class XTTSFile(TTS):
                 "speaker_wav": "calm_female",
                 "language": "ko",
             },
-        )
-        with self.player() as stream:
-            stream.write(r.content)
+        ) as r:
+            with self.player() as stream:
+                for chunk in r.iter_content(chunk_size=1024):
+                    stream.write(chunk)
 
     @contextmanager
     def player(self):
@@ -56,22 +57,20 @@ class XTTSFile(TTS):
 
 
 class XTTSStream(TTS):
-    def get_response(self, text: str):
-        with self.player() as stream:
-            r = requests.get(
-                "http://localhost:8020/tts_stream",
-                headers={"Content-Type": "application/json"},
-                params={
-                    "text": text,
-                    "speaker_wav": "calm_female",
-                    "language": "ko",
-                },
-                stream=True,
-            )
-            with BytesIO() as io:
-                with r:
-                    for chunk in r.iter_content(chunk_size=1024):
-                        stream.write(chunk)
+    def runner(self, text: str):
+        with requests.get(
+            "http://localhost:8020/tts_stream",
+            headers={"Content-Type": "application/json"},
+            params={
+                "text": text,
+                "speaker_wav": "calm_female",
+                "language": "ko",
+            },
+            stream=True,
+        ) as r:
+            with self.player() as stream:
+                for chunk in r.iter_content(chunk_size=1024):
+                    stream.write(chunk)
 
     @contextmanager
     def player(self):
