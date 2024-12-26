@@ -74,6 +74,8 @@ class Function(Generic[P, T]):
     @classmethod
     def function_call(cls, call: FunctionCall):
         name = call.name
+
+        print(f"function {name} called")
         args: dict = json.loads(call.arguments)
         function = Maybe.from_optional(cls.functions.get(name, None))
         return function.map(lambda x: FunctionResult(x, x(**args)))

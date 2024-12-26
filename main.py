@@ -38,10 +38,6 @@ def ai_loader():
     return AI.ChatGPT()
 
 
-def a(s: str):
-    return s
-
-
 def main(parser: argparse.ArgumentParser):
     p = pyaudio.PyAudio()
     args = parser.parse_args()
@@ -60,12 +56,4 @@ if __name__ == "__main__":
     parser.add_argument("--tts", default="xtts")
     parser.add_argument("--stt", default="local")
 
-    # while True:
-    #     runner = text_to_speach(tts)
-    #     input("지문을 입력해주세요: ")
-    #     runner("위키미디어 송년회가 12월 28일 신도림역 가온회의실에서 개최됩니다.")
-
-    # main(parser)
-    ai = ai_loader()
-    result = ai.run("뉴욕의 날씨를 알려줄래?")
-    print(result)
+    main(parser)
