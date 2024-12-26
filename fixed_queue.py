@@ -10,7 +10,7 @@ class FixedQueue[T](deque):
     def __init__(self, elements: Iterable[T], max_len: int):
         self.max_len = max_len
         self.current_len = 0
-        super().__init__(elements, maxlen=max_len)
+        super().__init__(elements)
 
     def append(self, item: T):
         if self.is_full:
@@ -36,11 +36,7 @@ class FixedQueue[T](deque):
             raise e
 
     def insert(self, i: int, x: Any) -> None:
-        try:
-            super().insert(i, x)
-            self.current_len += 1
-        except Exception as e:
-            raise e
+        raise
 
     def extend(self, iterable: Iterable) -> None:
         raise

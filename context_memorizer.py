@@ -52,7 +52,7 @@ def memorize_context_json(func: Callable[[Iterable[Message], str], str]):
         # 컨텍스트 로드
         context = loader.load_context().lash(JsonContextLoader.create_file)
         # 사용자 입력 추가
-        context.map(lambda x: x.append({"role": "user", "content": text}))
+        context.map(lambda x: x.append(User(text)))
         loader.save_message("user", text)
         result = context.map(lambda context: func(context, model_name))
         # AI 응답 생성

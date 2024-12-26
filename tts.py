@@ -5,6 +5,7 @@ from gtts import gTTS
 import pyaudio
 from playsound import playsound
 import requests
+from returns.result import safe
 
 
 class TTS:
@@ -12,6 +13,10 @@ class TTS:
         self.p = p
 
     def run(self, text: str): ...
+
+    def text_to_speech(self, text: str):
+        return safe(self.run)(text)
+
     @staticmethod
     def XTTS(p: pyaudio.PyAudio) -> "TTS":
         return XTTSStream(p=p)

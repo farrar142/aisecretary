@@ -3,7 +3,7 @@ from typing import Any
 import pyaudio
 import numpy as np
 from returns.maybe import maybe, Maybe
-from returns.result import safe, Result
+from returns.result import safe, Result, attempt
 
 from fixed_queue import FixedQueue
 from recorded_file import RecordedFile
@@ -88,21 +88,26 @@ class RecordingSession:
     def get_max_volume(audio_chunk: AudioChunk):
         return np.max(np.abs(audio_chunk))
 
-    @maybe
-    def handle_silent_frames(self, audio_chunk: AudioChunk):
-        # 현재 청크의 최대 진폭 계산
-        vol: int = self.get_max_volume(audio_chunk)
-        if vol < self.THRESHOLD:
-            self.silent_frames += 1
-            return True
-        self.silent_frames = 0
-        return None
+    def handle_silent(self, audio_chunk: AudioChunk):
+        @attempt
+        def inner(self: RecordingSession):
+            # 현재 청크의 최대 진폭 계산
+            vol: int = self.get_max_volume(audio_chunk)
+            if vol < self.THRESHOLD:
+                self.silent_frames += 1
+                return self
+            self.silent_frames = 0
+            raise ThresholdExceed
 
+        return inner(self)
+
+    @safe
     def handle_start_recording(self):
         if self.is_record_started:
-            return
+            return self
         self.is_record_started = True
         print("레코딩 시작")
+        return self
 
     def handle_frames(self, audio_chunk: AudioChunk):
         if not self.is_record_started:
@@ -111,6 +116,7 @@ class RecordingSession:
             self.main_frames.append(audio_chunk)
 
             self.pop_noise_check_queue.append(self.get_max_volume(audio_chunk))
+        return self
 
     def handle_pop_noise(self):
         if self.pop_noise_check_queue.is_full:
@@ -129,8 +135,8 @@ class RecordingSession:
     def record(self) -> RecordedFile:
         while True:
             audio_chunk = self.stream.read()
-            self.handle_silent_frames(audio_chunk).or_else_call(
-                self.handle_start_recording
+            self.handle_silent(audio_chunk).lash(
+                RecordingSession.handle_start_recording
             )
             # 오디오 청크 어레이에 데이터 추가
             self.handle_frames(audio_chunk)
