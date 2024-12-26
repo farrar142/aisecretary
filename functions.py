@@ -1,103 +1,105 @@
-from collections import deque
-import os
-from typing import Callable, Iterable, Union
-import openai
-import pyaudio
-import requests
-from returns.result import safe
-from returns.maybe import Maybe
-from dotenv import load_dotenv
-from g2pk import G2p
+import inspect
+import json
+from returns.maybe import Maybe, maybe
+from typing import Callable, Generic, ParamSpec, TypeVar
+from openai.types.chat.completion_create_params import Function as FunctionDict
+from openai.types.chat.chat_completion_message import FunctionCall
+from openai.types.chat import ChatCompletionFunctionMessageParam as FunctionM
 
-from ai.ai import AI
-from audio_recorder import AudioStream
-from stt import STT, STTResult
-from tts import TTS
-from ai.context import System, Message
-
-load_dotenv()
-OPEN_AI_KEY = os.getenv("OPEN_AI_KEY")
-SECRETARY_NAMES = os.getenv("SECRETARY_NAMES", "비서").split(",")
-DISCORD_WEB_HOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
-RECORD_DEVICE = os.getenv("RECORD_DEVICE", None)
+T = TypeVar("T")
+P = ParamSpec("P")
 
 
-def list_audio_devices(p: pyaudio.PyAudio):
-    print("사용 가능한 오디오 디바이스 목록:")
-    for i in range(p.get_device_count()):
-        info = p.get_device_info_by_index(i)
-        print(f"{i}: {info['name']}")
+def generate_parameters_from_function(func: Callable[P, T], **descriptions: str):
+    """
+    함수의 매개변수를 기반으로 OpenAI functions의 parameters를 자동 생성합니다.
+    """
+    signature = inspect.signature(func)
+    properties = {}
+    required = []
+
+    for name, param in signature.parameters.items():
+        param_type = param.annotation
+        param_default = param.default
+
+        # 기본 데이터 타입 처리
+        if param_type == str:
+            param_schema = {"type": "string"}
+        elif param_type == int:
+            param_schema = {"type": "integer"}
+        elif param_type == float:
+            param_schema = {"type": "number"}
+        elif param_type == bool:
+            param_schema = {"type": "boolean"}
+        else:
+            param_schema = {"type": "string"}  # 기본값: 문자열로 처리
+
+        # 매개변수 기본값이 없으면 필수(required)에 추가
+        if param_default == inspect.Parameter.empty:
+            required.append(name)
+        if description := descriptions.get(name, None):
+            param_schema.update(description=description)
+        # 속성 추가
+        properties[name] = param_schema
+
+    # JSON Schema 반환
+    return {"type": "object", "properties": properties, "required": required}
 
 
-@safe
-def get_record_device(p: pyaudio.PyAudio):
-    def select_device():
-        list_audio_devices(p)
-        selected = input("디바이스 선택: ")
-        return int(selected)
+class Function(Generic[P, T]):
+    functions: "dict[str, Function]" = dict()
 
-    return Maybe.from_optional(RECORD_DEVICE).map(int).or_else_call(select_device)
+    def __init__(self, function: Callable[P, T], **descriptions: str):
+        self.name = function.__name__
+        self.function = function
+        self.parameters = generate_parameters_from_function(function, **descriptions)
+        self.functions[self.name] = self
 
+    def __call__(self, *args: P.args, **kwargs: P.kwargs):
+        return self.function(*args, **kwargs)
 
-def get_text(data: STTResult):
-    return str(data["text"]).strip()
+    def __str__(self) -> str:
+        return f"<Function: {self.name}>"
 
+    def __repr__(self) -> str:
+        return self.__str__()
 
-# 텍스트 필터링
-@safe(exceptions=(Exception,))
-def is_ai_call(prompt: str):
-    target = next(filter(lambda x: prompt.startswith(x), SECRETARY_NAMES), None)
-    if target:
-        return prompt.removeprefix(target)
-    raise Exception
+    @classmethod
+    def register(cls, **descriptions: str):
+        def function_wrapper(function: Callable[P, T]):
+            return cls(function, **descriptions)
 
+        return function_wrapper
 
-# @memorize_context_json
-# @memorize_context
-def send_prompt_to_ai(
-    context: Iterable[Message], model_name: str = "gpt-3.5-turbo"
-) -> str:
-    total_context: list[Message] = [
-        System(content="You are a helpful assistant"),
-    ]
-    total_context.extend(context)
-    response = openai.chat.completions.create(
-        model=model_name,
-        messages=total_context,
-    )
-    return (response.choices[0].message.content or "").strip()
+    @classmethod
+    def function_call(cls, call: FunctionCall):
+        name = call.name
+        args: dict = json.loads(call.arguments)
+        function = Maybe.from_optional(cls.functions.get(name, None))
+        return function.map(lambda x: FunctionResult(x, x(**args)))
 
-
-def discord_webhook(text: str):
-    @safe
-    def inner(content: str):
-        if not DISCORD_WEB_HOOK_URL:
-            return content
-        requests.post(
-            DISCORD_WEB_HOOK_URL,
-            json=dict(content=text + "\n" + content),
-            headers={"Content-Type": "application/json"},
+    def dict(self):
+        return FunctionDict(
+            name=self.function.__name__,
+            description=self.function.__doc__ or "",
+            parameters=self.parameters,
         )
-        return content
-
-    return inner
 
 
-@safe(exceptions=(KeyboardInterrupt, Exception))  # type:ignore
-def loop(p: pyaudio.PyAudio, device_index: int, stt: STT, tts: TTS, ai: AI):
-    with AudioStream(p, device_index) as stream:
-        print("\n실시간 음성 입력을 녹음하고 변환합니다.\n")
-        while True:
-            # 오디오 데이터 반환
-            audio_data = stream.detect_audio()
-            # 오디오 데이터를 텍스트로 변환
-            prompt = audio_data.map(stt.run).value_or("").strip()
-            print(f"{prompt=}")
-            if not prompt:
-                continue
-            # 텍스트로 ai 응답 생성
-            response = is_ai_call(prompt).bind(ai.run)
-            # 응답을 tts로 출력해야됨
-            response.map(print)
-            response.bind(discord_webhook(prompt))
-            response.bind(safe(G2p())).bind(tts.run)
+class FunctionResult(Generic[P, T]):
+    def __init__(self, function: Function[P, T], result: T):
+        self.function = function
+        self.result = result
+
+    def to_message(self):
+        return FunctionM(
+            role="function", name=self.function.name, content=str(self.result)
+        )
+
+
+# 테스트용 함수
+@Function.register(location="위치 이름", unit="단위 (metric 또는 imperial)")
+def get_weather(location: str, unit: str = "metric"):
+    "특정 위치의 날씨를 가져옵니다."
+    print("날씨찾기!!!")
+    return "맑거나 흐림"

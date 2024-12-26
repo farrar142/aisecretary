@@ -6,6 +6,7 @@ from openai.types.chat import (
     ChatCompletionSystemMessageParam as _System,
     ChatCompletionAssistantMessageParam as _Assistant,
     ChatCompletionUserMessageParam as _User,
+    ChatCompletionFunctionMessageParam as _FunctionM,
 )
 from returns.maybe import Maybe, maybe
 from returns.result import safe, attempt, Success, Result
@@ -13,7 +14,8 @@ from returns.result import safe, attempt, Success, Result
 User = partial(_User, role="user")
 System = partial(_System, role="system")
 Assistant = partial(_Assistant, role="assistant")
-Message = Union[_User, _System, _Assistant]
+FunctionM = partial(_FunctionM, role="function")
+Message = Union[_User, _System, _Assistant, _FunctionM]
 
 
 class ContextLoader:

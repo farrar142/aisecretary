@@ -5,8 +5,8 @@ import numpy as np
 from returns.maybe import maybe, Maybe
 from returns.result import safe, Result, attempt
 
-from fixed_queue import FixedQueue
-from recorded_file import RecordedFile
+from recorder.fixed_queue import FixedQueue
+from recorder.recorded_file import RecordedFile
 
 AudioChunk = np.ndarray[Any, np.dtype[np.int16]]
 

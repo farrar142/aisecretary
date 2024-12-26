@@ -1,19 +1,18 @@
 import argparse
-import os
-import sys
-from typing import Any
+import json
 import openai
 import pyaudio
+from returns.maybe import Maybe
 
 from ai.ai import AI
-from functions import (
+from utils import (
     OPEN_AI_KEY,
     get_record_device,
     list_audio_devices,
     loop,
 )
-from stt import STT
-from tts import TTS
+from converters.stt import STT
+from converters.tts import TTS
 
 openai.api_key = OPEN_AI_KEY
 # TODO:
@@ -66,4 +65,7 @@ if __name__ == "__main__":
     #     input("지문을 입력해주세요: ")
     #     runner("위키미디어 송년회가 12월 28일 신도림역 가온회의실에서 개최됩니다.")
 
-    main(parser)
+    # main(parser)
+    ai = ai_loader()
+    result = ai.run("뉴욕의 날씨를 알려줄래?")
+    print(result)

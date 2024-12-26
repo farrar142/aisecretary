@@ -1,8 +1,6 @@
 from typing import Any, TypedDict
 import openai
-import whisper
-
-from recorded_file import RecordedFile
+from recorder.recorded_file import RecordedFile
 
 
 class STTResult(TypedDict):
@@ -30,6 +28,8 @@ class LocalWhisper(STT):
         self.model = self.load_whisper()
 
     def load_whisper(self):
+        import whisper
+
         return whisper.load_model("medium", device="cuda:1")
 
     def run(self, data: RecordedFile) -> str:
