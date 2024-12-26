@@ -5,7 +5,7 @@ from returns.result import attempt, safe, Result
 from returns.maybe import Maybe
 
 from ai.functions import Function, FunctionResult, get_weather
-from throttles import execution_limit
+from utils.throttles import execution_limit
 from .context import Message, System, Assistant, ContextLoader
 
 
@@ -30,7 +30,6 @@ class AI:
 )
 def turn_light(location: str, state: bool):
     "location위치의 불을 키고 끕니다"
-    print(f"turn light in {location} {state}")
     return True
 
 
@@ -43,29 +42,30 @@ def now():
 class ChatGPT(AI):
     model_name = "gpt-3.5-turbo"
 
-    def recursive_response(self, messages: Iterable[Message]) -> str:
-        print("call")
-        response = openai.chat.completions.create(
-            model=self.model_name,
-            messages=messages,
-            function_call="auto",
-            functions=[get_weather.dict(), turn_light.dict(), now.dict()],
-        )
-        choice = response.choices[0]
-        if choice.finish_reason == "function_call":
-            if choice.message.function_call:
-                call = choice.message.function_call
-                result = Function.function_call(call)
-                assist_message = Assistant(function_call=call.model_dump())
-                result_message = result.map(FunctionResult.to_message).unwrap()
-                return self.recursive_response(
-                    [*messages, assist_message, result_message]
-                )
-        return (choice.message.content or "").strip()
-
     def get_response(self, messages: Iterable[Message]) -> str:
         total_context: list[Message] = [
             System(content="You are a helpful assistant"),
         ]
         total_context.extend(messages)
-        return execution_limit(3)(self.recursive_response)(total_context)
+
+        @execution_limit(3)
+        def recursive_response(messages: Iterable[Message]) -> str:
+            response = openai.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                function_call="auto",
+                functions=[get_weather.dict(), turn_light.dict(), now.dict()],
+            )
+            choice = response.choices[0]
+            if choice.finish_reason == "function_call":
+                if choice.message.function_call:
+                    call = choice.message.function_call
+                    result = Function.function_call(call)
+                    assist_message = Assistant(function_call=call.model_dump())
+                    result_message = result.map(FunctionResult.to_message).unwrap()
+                    return recursive_response(
+                        [*messages, assist_message, result_message]
+                    )
+            return (choice.message.content or "").strip()
+
+        return recursive_response(total_context)
