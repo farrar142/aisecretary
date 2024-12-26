@@ -7,7 +7,7 @@ from playsound import playsound
 import requests
 from returns.result import safe
 
-from utils.threaded import threaded
+from decorators.threaded import threaded
 
 
 class TTS:
