@@ -5,7 +5,7 @@ from returns.result import attempt, safe, Result
 from returns.maybe import Maybe
 
 from ai.functions import Function, FunctionResult, get_weather
-from utils.throttles import execution_limit
+from decorators.throttles import execution_limit
 from .context import Message, System, Assistant, ContextLoader
 
 

@@ -8,7 +8,7 @@ from ai.ai import AI
 from recorder.audio_recorder import AudioStream
 from converters.stt import STT, STTResult
 from converters.tts import TTS
-from utils.threaded import threaded
+from decorators.threaded import threaded
 
 
 def list_audio_devices(p: pyaudio.PyAudio):

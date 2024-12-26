@@ -2,7 +2,7 @@ import queue
 import threading
 from functools import wraps
 from typing import Callable, Generic, ParamSpec, TypeVar
-from returns.maybe import Maybe, maybe
+from returns.result import safe, Result
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -13,18 +13,18 @@ class Thread(Generic[P, T]):
         self.function = function
         self.args = args
         self.kwargs = kwargs
-        self.queue = queue.Queue[Maybe[T]]()
+        self.queue = queue.Queue[Result[T, Exception]]()
         self.thread = threading.Thread(target=self.run_with_result)
         self.thread.start()
 
     def run_with_result(self):
-        try:
-            result = Maybe.from_value(self.function(*self.args, **self.kwargs))
-        except:
-            result = Maybe.from_optional(None)
-        self.queue.put(result)
+        @safe
+        def inner():
+            return self.function(*self.args, **self.kwargs)
 
-    def join(self) -> Maybe[T]:
+        self.queue.put(inner())
+
+    def join(self) -> Result[T, Exception]:
         self.thread.join()
         return self.queue.get()
 
