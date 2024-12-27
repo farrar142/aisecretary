@@ -56,6 +56,16 @@ def discord_webhook(text: str):
     return inner
 
 
+@threaded
+def play_error_sound(p: pyaudio.PyAudio):
+    stream = p.open(format=pyaudio.paFloat32, channels=2, rate=44100, output=True)
+    with open("failed.wav", "rb") as file:
+        data = file.read()
+        stream.write(data)
+    stream.start_stream()
+    stream.close()
+
+
 @safe(exceptions=(KeyboardInterrupt, Exception))  # type:ignore
 def loop(p: pyaudio.PyAudio, device_index: int, stt: STT, tts: TTS, ai: AI):
     from g2pk import G2p

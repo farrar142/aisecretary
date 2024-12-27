@@ -1,7 +1,7 @@
 import inspect
 import json
 from returns.maybe import Maybe, maybe
-from typing import Callable, Generic, ParamSpec, TypeVar
+from typing import Callable, Generic, ParamSpec, TypeVar, Union
 from openai.types.chat.completion_create_params import Function as FunctionDict
 from openai.types.chat.chat_completion_message import FunctionCall
 from openai.types.chat import ChatCompletionFunctionMessageParam as FunctionM
@@ -90,6 +90,13 @@ class Function(Generic[P, T]):
             description=self.function.__doc__ or "",
             parameters=self.parameters,
         )
+
+
+def function_register(**descriptions: str):
+    def function_wrapper(function: Callable[P, T]):
+        return Function(function, **descriptions)
+
+    return function_wrapper
 
 
 class FunctionResult(Generic[P, T]):

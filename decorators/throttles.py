@@ -3,14 +3,10 @@ from functools import wraps
 from collections import deque
 from typing import Callable, Generic, ParamSpec, TypeVar
 
+from exceptions import ExecutionLimitExceededError, RateLimitExceededError
+
 P = ParamSpec("P")
 T = TypeVar("T")
-
-
-class RateLimitExceededError(Exception):
-    """Raised when a function exceeds the allowed rate limit."""
-
-    pass
 
 
 def rate_limit(max_calls_per_second: int):
@@ -46,12 +42,6 @@ def rate_limit(max_calls_per_second: int):
         return wrapper
 
     return decorator
-
-
-class ExecutionLimitExceededError(Exception):
-    """Raised when a function exceeds the allowed execution limit."""
-
-    pass
 
 
 P2 = ParamSpec("P2")
