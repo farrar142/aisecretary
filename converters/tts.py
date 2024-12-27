@@ -11,6 +11,7 @@ from decorators.threaded import threaded
 
 
 class TTS:
+
     def __init__(self, p: pyaudio.PyAudio, *args, **kwargs):
         self.p = p
 
@@ -22,41 +23,19 @@ class TTS:
 
     @staticmethod
     def XTTS(p: pyaudio.PyAudio) -> "TTS":
-        return XTTSStream(p=p)
+        return XTTS(p=p)
 
     @staticmethod
     def GTTS(p: pyaudio.PyAudio) -> "TTS":
         return GTTS(p=p)
 
 
-class XTTSFile(TTS):
-    def runner(self, text: str):
-        with requests.post(
-            "http://localhost:8020/tts_to_audio",
-            headers={"Content-Type": "application/json"},
-            json={
-                "text": text,
-                "speaker_wav": "calm_female",
-                "language": "ko",
-            },
-        ) as r:
-            with self.player() as stream:
-                for chunk in r.iter_content(chunk_size=1024):
-                    stream.write(chunk)
+class XTTS(TTS):
+    channels = 1
+    format = pyaudio.paInt16
+    rate = 24000
+    chunk = 1024
 
-    @contextmanager
-    def player(self):
-        try:
-            stream = self.p.open(
-                format=pyaudio.paInt16, channels=1, rate=int(24000), output=True
-            )
-            yield stream
-        finally:
-            stream.start_stream()
-            stream.close()
-
-
-class XTTSStream(TTS):
     def runner(self, text: str):
         with requests.get(
             "http://localhost:8020/tts_stream",
@@ -69,19 +48,18 @@ class XTTSStream(TTS):
             stream=True,
         ) as r:
             with self.player() as stream:
-                for chunk in r.iter_content(chunk_size=1024):
-                    print("write")
+                for chunk in r.iter_content(chunk_size=self.chunk):
                     stream.write(chunk)
 
     @contextmanager
     def player(self):
         try:
             stream = self.p.open(
-                format=pyaudio.paInt16,
-                channels=1,
-                rate=int(24000),
+                format=self.format,
+                channels=self.channels,
+                rate=self.rate,
                 output=True,
-                frames_per_buffer=1024,
+                frames_per_buffer=self.chunk,
             )
             yield stream
         finally:
