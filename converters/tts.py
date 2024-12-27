@@ -70,17 +70,23 @@ class XTTSStream(TTS):
         ) as r:
             with self.player() as stream:
                 for chunk in r.iter_content(chunk_size=1024):
+                    print("write")
                     stream.write(chunk)
 
     @contextmanager
     def player(self):
         try:
             stream = self.p.open(
-                format=pyaudio.paInt16, channels=1, rate=int(24000), output=True
+                format=pyaudio.paInt16,
+                channels=1,
+                rate=int(24000),
+                output=True,
+                frames_per_buffer=1024,
             )
             yield stream
         finally:
-            stream.start_stream()
+            print("done")
+            stream.stop_stream()
             stream.close()
 
 
