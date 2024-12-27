@@ -3,12 +3,12 @@ import requests
 from returns.result import safe
 from returns.maybe import Maybe
 
-from consts import *
 from ai.ai import AI
 from recorder.audio_recorder import AudioStream
 from converters.stt import STT, STTResult
 from converters.tts import TTS
 from decorators.threaded import threaded
+from settings import Setting
 
 
 def list_audio_devices(p: pyaudio.PyAudio):
@@ -25,7 +25,9 @@ def get_record_device(p: pyaudio.PyAudio):
         selected = input("디바이스 선택: ")
         return int(selected)
 
-    return Maybe.from_optional(RECORD_DEVICE).map(int).or_else_call(select_device)
+    return (
+        Maybe.from_optional(Setting.RECORD_DEVICE).map(int).or_else_call(select_device)
+    )
 
 
 def get_text(data: STTResult):
@@ -35,7 +37,7 @@ def get_text(data: STTResult):
 # 텍스트 필터링
 @safe(exceptions=(Exception,))
 def is_ai_call(prompt: str):
-    target = next(filter(lambda x: prompt.startswith(x), SECRETARY_NAMES), None)
+    target = next(filter(lambda x: prompt.startswith(x), Setting.SECRETARY_NAMES), None)
     if target:
         return prompt.removeprefix(target)
     raise Exception
@@ -44,10 +46,10 @@ def is_ai_call(prompt: str):
 def discord_webhook(text: str):
     @threaded
     def inner(content: str):
-        if not DISCORD_WEB_HOOK_URL:
+        if not Setting.DISCORD_WEBHOOK_URL:
             return content
         requests.post(
-            DISCORD_WEB_HOOK_URL,
+            Setting.DISCORD_WEBHOOK_URL,
             json=dict(content=text + "\n" + content),
             headers={"Content-Type": "application/json"},
         )

@@ -4,14 +4,14 @@ import pyaudio
 
 from ai.ai import AI
 from programs import (
-    OPEN_AI_KEY,
     get_record_device,
     loop,
 )
 from converters.stt import STT
 from converters.tts import TTS
+from settings import Setting
 
-openai.api_key = OPEN_AI_KEY
+openai.api_key = Setting.OPEN_AI_KEY
 # TODO:
 # [O] WHISPER 서버를 이용한 음성 인식 기능 추가
 # [O] 디스코드 웹훅 기능 추가

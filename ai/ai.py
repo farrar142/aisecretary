@@ -5,10 +5,10 @@ from returns.result import safe
 from returns.maybe import maybe
 
 from ai.functions import Function, FunctionResult
-from consts import CHAT_GPT_MODEL_NAME
 from exceptions import RequestLimitError
 from ai.context import Message, System, Assistant, ContextLoader
 from ai.tasks import *
+from settings import Setting
 
 
 class AI:
@@ -29,7 +29,7 @@ class AI:
 
 # 챗지피티 리커시브 리스폰스 클래스를 만들어서 runner분리
 class ChatGPTResponseSession:
-    model_name = CHAT_GPT_MODEL_NAME
+    model_name = Setting.CHAT_GPT_MODEL_NAME
 
     def __init__(self, request_limit: int = 3):
         self.request_limit = request_limit
@@ -71,4 +71,4 @@ class ChatGPTResponseSession:
 
 class ChatGPT(AI):
     def runner(self, messages: Iterable[Message]) -> str:
-        return ChatGPTResponseSession(3).run(messages)
+        return ChatGPTResponseSession(Setting.CHAT_LIMIT_PER_SESSION).run(messages)
