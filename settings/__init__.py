@@ -32,7 +32,7 @@ load_dotenv()
 
 
 class Setting:
-    """필드의 값을 선언하면, 이니셜라이저에서 os의 env값을 읽어와 자동으로 타입에 맞게 값을 넣어주는 클래스"""
+    """필드의 값을 선언하면, loader에서 env값을 읽어와 자동으로 타입에 맞게 값을 넣어주는 클래스"""
 
     OPEN_AI_KEY: str
     SECRETARY_NAMES: list[str]

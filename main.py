@@ -1,15 +1,19 @@
 import argparse
 import openai
 import pyaudio
+from returns.result import safe
 
 from ai.ai import AI
-from programs import (
+from utils import (
+    discord_webhook,
     get_record_device,
-    loop,
+    is_ai_call,
 )
 from converters.stt import STT
 from converters.tts import TTS
+from recorder.audio_recorder import AudioStream
 from settings import Setting
+from client_loaders import tts_loader, stt_loader, ai_loader
 
 openai.api_key = Setting.OPEN_AI_KEY
 # TODO:
@@ -19,20 +23,28 @@ openai.api_key = Setting.OPEN_AI_KEY
 # [X] AI 성격 추가
 
 
-def tts_loader(p: pyaudio.PyAudio, tts: str):
-    if tts == "gtts":
-        return TTS.GTTS(p)
-    return TTS.XTTS(p)
+@safe(exceptions=(KeyboardInterrupt, Exception))  # type:ignore
+def loop(p: pyaudio.PyAudio, device_index: int, stt: STT, tts: TTS, ai: AI):
+    from g2pk import G2p
 
+    g2p = G2p()
 
-def stt_loader(stt: str):
-    if stt == "remote":
-        return STT.RemoteSTT()
-    return STT.LocalSTT()
-
-
-def ai_loader():
-    return AI.ChatGPT()
+    with AudioStream(p, device_index) as stream:
+        print("\n실시간 음성 입력을 녹음하고 변환합니다.\n")
+        while True:
+            # 오디오 데이터 반환
+            audio_data = stream.detect_audio()
+            # 오디오 데이터를 텍스트로 변환
+            prompt = audio_data.map(stt.run).value_or("").strip()
+            print(f"{prompt=}")
+            if not prompt:
+                continue
+            # 텍스트로 ai 응답 생성
+            response = is_ai_call(prompt).bind(ai.run)
+            # 응답을 tts로 출력해야됨
+            response.map(lambda response: print(f"{response=}"))
+            response.map(discord_webhook(prompt))
+            response.bind(safe(g2p)).map(tts.run)
 
 
 def main(parser: argparse.ArgumentParser):
