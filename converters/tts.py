@@ -1,5 +1,4 @@
 from contextlib import contextmanager
-from io import BytesIO
 import uuid
 from gtts import gTTS
 import pyaudio

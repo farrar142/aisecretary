@@ -1,5 +1,4 @@
 import argparse
-import openai
 import pyaudio
 from returns.result import safe
 
@@ -15,7 +14,6 @@ from recorder.audio_recorder import AudioStream
 from settings import Setting
 from client_loaders import tts_loader, stt_loader, ai_loader
 
-openai.api_key = Setting.OPEN_AI_KEY
 # TODO:
 # [O] WHISPER 서버를 이용한 음성 인식 기능 추가
 # [O] 디스코드 웹훅 기능 추가

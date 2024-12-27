@@ -32,6 +32,9 @@ class ChatGPTResponseSession:
     model_name = Setting.CHAT_GPT_MODEL_NAME
 
     def __init__(self, request_limit: int = 3):
+        from client_loaders import openai_loader
+
+        self.client = openai_loader()
         self.request_limit = request_limit
         self.request_count = 0
 
@@ -50,7 +53,7 @@ class ChatGPTResponseSession:
     def recursive_response(self, messages: Iterable[Message]) -> str:
         if self.request_limit < self.request_count:
             raise RequestLimitError
-        response = openai.chat.completions.create(
+        response = self.client.chat.completions.create(
             model=self.model_name,
             messages=messages,
             function_call="auto",

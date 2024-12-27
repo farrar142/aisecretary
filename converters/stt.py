@@ -28,15 +28,12 @@ class STT:
 
 class LocalWhisper(STT):
     def __init__(self):
-        self.model = self.load_whisper()
+        from client_loaders import whisper_loader
 
-    def load_whisper(self):
-        import whisper
-
-        return whisper.load_model("medium", device="cuda:1")
+        self.client = whisper_loader()
 
     def runner(self, data: RecordedFile) -> str:
-        return self.model.transcribe(
+        return self.client.transcribe(
             data.translate_16_to_32(), fp16=False, language="ko"
         )[
             "text"
@@ -44,11 +41,15 @@ class LocalWhisper(STT):
 
 
 class RemoteWhisper(STT):
+    def __init__(self):
+        from client_loaders import openai_loader
+
+        self.client = openai_loader()
+
     def runner(self, data: RecordedFile) -> str:
         with data.to_file() as f:
-            print(f)
             try:
-                return openai.audio.transcriptions.create(
+                return self.client.audio.transcriptions.create(
                     file=f,
                     model="whisper-1",
                 ).text

@@ -40,7 +40,8 @@ class Setting:
     RECORD_DEVICE: int
     CHAT_LIMIT_PER_SESSION: int = 3
     CHAT_GPT_MODEL_NAME: str = "gpt-3.5-turbo"
-    OPTIONAL: Optional[str] = None
+    WHISPER_MODEL_NAME: str = "medium"
+    WHISPER_DEVICE: Optional[str] = None
 
     @classmethod
     def env_loader(cls):
