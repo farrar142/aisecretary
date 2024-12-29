@@ -1,5 +1,5 @@
 import json
-from typing import Any, Callable, Optional, Union, get_type_hints
+from typing import Any, Callable, Literal, Optional, Union, get_type_hints
 from dotenv import load_dotenv
 import os
 import chardet
@@ -28,20 +28,7 @@ def detect_file_encoding(file_path: str, buffer_size: int = 1024) -> str:
         raise RuntimeError(f"Error detecting encoding for file '{file_path}': {e}")
 
 
-load_dotenv()
-
-
-class Setting:
-    """필드의 값을 선언하면, loader에서 env값을 읽어와 자동으로 타입에 맞게 값을 넣어주는 클래스"""
-
-    OPEN_AI_KEY: str
-    SECRETARY_NAMES: list[str]
-    DISCORD_WEBHOOK_URL: str
-    RECORD_DEVICE: int
-    CHAT_LIMIT_PER_SESSION: int = 3
-    CHAT_GPT_MODEL_NAME: str = "gpt-3.5-turbo"
-    WHISPER_MODEL_NAME: str = "medium"
-    WHISPER_DEVICE: Optional[str] = None
+class SettingLoader:
 
     @classmethod
     def env_loader(cls):
@@ -59,6 +46,9 @@ class Setting:
     def json_loader(cls, file_name="settings.json") -> dict[str, Any]:
         with open(file_name, "r", encoding=detect_file_encoding(file_name)) as f:
             return json.loads(f.read())
+
+
+class SettingBase:
 
     @classmethod
     def load(cls, loader: Callable[[], dict[str, Any]]):
@@ -90,8 +80,8 @@ class Setting:
 
             setattr(cls, field_name, converted_value)
 
-    @staticmethod
-    def _convert_value(value: str, to_type: Any) -> Any:
+    @classmethod
+    def _convert_value(cls, value: str, to_type: Any) -> Any:
         """환경 변수 값을 지정된 타입으로 변환"""
         origin_type = getattr(to_type, "__origin__", None)
 
@@ -100,16 +90,19 @@ class Setting:
             non_optional_type = next(
                 arg for arg in to_type.__args__ if arg is not type(None)
             )
-            return Setting._convert_value(value, non_optional_type)
+            return cls._convert_value(value, non_optional_type)
 
         # list 처리
         if origin_type is list:
             item_type = to_type.__args__[0]
             if isinstance(value, list):
-                return [Setting._convert_value(v.strip(), item_type) for v in value]
-            return [
-                Setting._convert_value(v.strip(), item_type) for v in value.split(",")
-            ]
+                return [cls._convert_value(v.strip(), item_type) for v in value]
+            return [cls._convert_value(v.strip(), item_type) for v in value.split(",")]
+
+        # Literal 처리
+        if origin_type is Literal:
+            item_type = to_type.__args__[0].__class__
+            return cls._convert_value(value, item_type)
 
         # 기본 타입 변환
         if to_type == int:
@@ -137,6 +130,24 @@ class Setting:
         for field_name in type_hints.keys():
             result[field_name] = getattr(cls, field_name, None)
         return result
+
+
+class Setting(SettingBase, SettingLoader):
+    """필드의 값을 선언하면, loader에서 env값을 읽어와 자동으로 타입에 맞게 값을 넣어주는 클래스"""
+
+    OPEN_AI_KEY: str
+    SECRETARY_NAMES: list[str]
+    DISCORD_WEBHOOK_URL: str
+    RECORD_DEVICE: int
+    CHAT_LIMIT_PER_SESSION: int = 3
+    CHAT_GPT_MODEL_NAME: str = "gpt-3.5-turbo"
+    WHISPER_MODEL_NAME: str = "medium"
+    WHISPER_DEVICE: Optional[str] = None
+    STT: Literal["local", "remote"] = "local"
+    TTS: Literal["xtts", "gtts"] = "xtts"
+
+
+load_dotenv()
 
 
 Setting.load(loader=Setting.json_loader)
