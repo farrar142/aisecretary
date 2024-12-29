@@ -72,7 +72,7 @@ class GTTS(TTS):
         self.file_name = uuid.uuid4().hex + ".mp3"
         super().__init__(*args, **kwargs)
 
-    def get_response(self, text: str):
+    def runner(self, text: str):
         tts = gTTS(text, lang="ko", slow=False)
         tts.save(self.file_name)
         self.player()

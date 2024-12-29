@@ -1,5 +1,4 @@
 from typing import Any, TypedDict
-import openai
 from recorder.recorded_file import RecordedFile
 
 

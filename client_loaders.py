@@ -6,14 +6,14 @@ from ai.ai import AI
 from settings import Setting
 
 
-def tts_loader(p: pyaudio.PyAudio, tts: str):
-    if tts == "gtts":
+def tts_loader(p: pyaudio.PyAudio):
+    if Setting.TTS == "gtts":
         return TTS.GTTS(p)
     return TTS.XTTS(p)
 
 
-def stt_loader(stt: str):
-    if stt == "remote":
+def stt_loader():
+    if Setting.STT == "remote":
         return STT.RemoteSTT()
     return STT.LocalSTT()
 

@@ -1,4 +1,3 @@
-import argparse
 import pyaudio
 from returns.result import safe
 
@@ -45,11 +44,10 @@ def loop(p: pyaudio.PyAudio, device_index: int, stt: STT, tts: TTS, ai: AI):
             response.bind(safe(g2p)).map(tts.run)
 
 
-def main(parser: argparse.ArgumentParser):
+def main():
     p = pyaudio.PyAudio()
-    args = parser.parse_args()
-    tts = tts_loader(p, args.tts)
-    stt = stt_loader(args.stt)
+    tts = tts_loader(p)
+    stt = stt_loader()
     ai = ai_loader()
     device = get_record_device(p)
     result = device.bind(lambda x: loop(p, x, tts=tts, stt=stt, ai=ai))
@@ -59,7 +57,4 @@ def main(parser: argparse.ArgumentParser):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--tts", default="xtts")
-    parser.add_argument("--stt", default="local")
-    main(parser)
+    main()

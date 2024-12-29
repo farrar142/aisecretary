@@ -1,6 +1,9 @@
 class RequestLimitError(Exception): ...
 
 
+class ThresholdExceed(Exception): ...
+
+
 class ExecutionLimitExceededError(Exception):
     """Raised when a function exceeds the allowed execution limit."""
 

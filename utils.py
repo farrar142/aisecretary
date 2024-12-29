@@ -3,10 +3,7 @@ import requests
 from returns.result import safe
 from returns.maybe import Maybe
 
-from ai.ai import AI
-from recorder.audio_recorder import AudioStream
-from converters.stt import STT, STTResult
-from converters.tts import TTS
+from converters.stt import STTResult
 from decorators.threaded import threaded
 from settings import Setting
 

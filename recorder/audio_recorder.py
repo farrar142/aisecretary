@@ -5,6 +5,7 @@ import numpy as np
 from returns.maybe import maybe, Maybe
 from returns.result import safe, Result, attempt
 
+from exceptions import ThresholdExceed
 from recorder.fixed_queue import FixedQueue
 from recorder.recorded_file import RecordedFile
 
@@ -53,9 +54,6 @@ class AudioStream:
     @safe
     def detect_audio(self):
         return RecordingSession(self).record()
-
-
-class ThresholdExceed(Exception): ...
 
 
 class RecordingSession:
