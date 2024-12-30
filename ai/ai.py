@@ -9,6 +9,7 @@ from exceptions import RequestLimitError
 from ai.context import Message, System, Assistant, ContextLoader
 from ai.tasks import *
 from settings import Setting
+from utils import Stream
 
 
 class AI:

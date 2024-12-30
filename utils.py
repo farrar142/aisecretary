@@ -1,3 +1,5 @@
+from functools import reduce
+from typing import Callable, Generic, Iterable, TypeVar
 import pyaudio
 import requests
 from returns.result import safe
@@ -63,3 +65,27 @@ def play_error_sound(p: pyaudio.PyAudio):
         stream.write(data)
     stream.start_stream()
     stream.close()
+
+
+T = TypeVar("T")
+U = TypeVar("U")
+
+
+class Stream(Generic[T]):
+    def __init__(self, value: Iterable[T]):
+        self.value = value
+
+    def map(self, function: Callable[[T], U]):
+        value = map(function, self.value)
+        return Stream(value)
+
+    def filter(self, function: Callable[[T], bool]):
+        value = filter(function, self.value)
+        return Stream(value)
+
+    def reduce(self, function: Callable[[U, T], U], default_value: U):
+        value = reduce(function, self.value, default_value)
+        return value
+
+    def to_list(self):
+        return list(self.value)
