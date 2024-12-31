@@ -37,6 +37,7 @@ def get_text(data: STTResult):
 @safe(exceptions=(Exception,))
 def is_ai_call(prompt: str):
     target = next(filter(lambda x: prompt.startswith(x), Setting.SECRETARY_NAMES), None)
+    print(f"{target=}")
     if target:
         return prompt.removeprefix(target)
     raise Exception

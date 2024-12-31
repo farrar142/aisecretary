@@ -18,7 +18,8 @@ class QtLogger:
         self.logger.setLevel(logging.DEBUG)
 
         log_handler = LogHandler(log_output)
-        log_handler.setFormatter(
-            logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-        )
+        log_handler.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
+        # log_handler.setFormatter(
+        #     logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+        # )
         self.logger.addHandler(log_handler)

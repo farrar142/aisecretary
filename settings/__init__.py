@@ -50,13 +50,13 @@ class SettingLoader:
     @classmethod
     def json_writer(cls, data: dict[str, Any], file_name="settings.json"):
         with open(file_name, "w", encoding=detect_file_encoding(file_name)) as f:
-            return json.dump(data, f, indent=2)
+            return json.dump(data, f, indent=2, ensure_ascii=False)
 
 
 class SettingBase:
 
     @classmethod
-    def load(cls, loader: Callable[[], dict[str, Any]]) -> dict:
+    def load(cls, loader: Callable[[], dict[str, Any]]):
         env = loader()
         type_hints = get_type_hints(cls)
         values = dict()
@@ -85,15 +85,17 @@ class SettingBase:
                 )
 
             setattr(cls, field_name, converted_value)
-            value = converted_value
-            if isinstance(value, str):
-                pass
-            elif isinstance(value, Iterable):
-                value = ",".join(value)
-            elif not isinstance(value, str):
-                value = str(value)
-            values[field_name] = value
-        return values
+
+    @classmethod
+    def save(
+        cls,
+        loader: Callable[[], dict[str, Any]],
+        writer: Callable[[dict[str, Any]], None],
+    ):
+        cls.load(loader)
+        writer(loader())
+
+        pass
 
     @classmethod
     def _convert_value(cls, value: str, to_type: Any) -> Any:

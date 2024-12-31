@@ -1,9 +1,12 @@
 from PyQt6.QtWidgets import *
 
 from settings import Setting
+from ui.component import Component
 
 
 class SettingTab(QWidget):
+    logger = Component.inject("logger")
+
     def __init__(self) -> None:
         super().__init__()
         self.initUi()
@@ -134,5 +137,5 @@ class SettingTab(QWidget):
             "STT": self.stt_combobox.currentText(),
             "TTS": self.tts_combobox.currentText(),
         }
-        print("Saved Settings:", settings)  # Replace with actual saving logic
-        self.close()
+        Setting.save(lambda: settings, Setting.json_writer)
+        self.logger.info("Settings Saved")

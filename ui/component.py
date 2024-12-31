@@ -1,5 +1,5 @@
 import sys
-from typing import Callable, Generic, ParamSpec, Self, TypeVar
+from typing import Any, Callable, Generic, ParamSpec, Self, TypeVar
 
 from PyQt6.QtWidgets import QApplication
 
@@ -10,6 +10,7 @@ P = ParamSpec("P")
 
 
 class Component:
+    __elements: dict[str, Any] = dict()
     application: QApplication
 
     def __init__(self, name: str, *args, **kwargs):
@@ -20,15 +21,16 @@ class Component:
 
     @classmethod
     def initialize_app(cls) -> "QApplication":
-        if not (application := getattr(cls, "__application", None)):
+        if not (application := cls.__elements.get("__application", None)):
             application = QApplication(sys.argv)
-            setattr(cls, "__application", application)
+            cls.__elements["__application"] = application
         return application
 
     def __call__(self, func: Callable[P, T]):
 
-        _instance = func(*self.args, **self.kwargs)
-        setattr(self.__class__, self.name, _instance)
+        if not (_instance := self.__elements.get(self.name, None)):
+            _instance = func(*self.args, **self.kwargs)
+            self.__elements[self.name] = _instance
 
         def inner(*args: P.args, **kwargs: P.kwargs):
             return _instance

@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
 from layout_colorwidget import Color
 from PyQt6.QtWidgets import (
@@ -50,16 +50,34 @@ from ui.loggers import QtLogger
 from ui.tabs.setting_tabs.setting_tab import SettingTab
 
 
-@Component("main_tab")
+class AIThread(QThread):
+    update_signal = pyqtSignal(str)
+
+    def run(self) -> None:
+        from main import main
+
+        main()
+
+
 class MainTab(QWidget):
+
     def __init__(self) -> None:
         super().__init__()
         layout = QHBoxLayout()
         label = QLabel("Main")
         layout.addWidget(label)
         self.setLayout(layout)
+        self.worker_thread = AIThread()
+        self.worker_thread.update_signal.connect(self.update_log)
+        self.worker_thread.start()
+
+    def update_log(self, message: str):
+        main_window = Component.inject("main_window")
+        main_window.info(message)
 
 
+@Component("main_window")
+@Component("logger")
 class MainWindow(QMainWindow, QtLogger):
     main_tab = Component.inject("main_tab")
 
@@ -102,4 +120,6 @@ class MainWindow(QMainWindow, QtLogger):
 app = Component.initialize_app()
 window = MainWindow()
 window.show()
+print(Component.inject("main_window"))
+print(Component.inject("logger"))
 app.exec()
